@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask投票系统</title>
+    <style>
+        /* 全局简易样式，无额外UI框架 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "SimHei", "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background-color: #2f86eb;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background-color: #1e76d9;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .poll-item {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .poll-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2f86eb;
+        }
+
+        .poll-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .poll-info {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .option-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #2f86eb;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .welcome-text {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .option-add-container {
+            margin-top: 20px;
+        }
+
+        .radio-group {
+            margin-bottom: 10px;
+        }
+
+        .radio-group input {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 1. 登录模块（默认显示） -->
+    <div id="login-module" class="container">
+        <h2 class="title">用户登录</h2>
+        <div class="form-group">
+            <label for="login-username">用户名</label>
+            <input type="text" id="login-username" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+            <label for="login-password">密码</label>
+            <input type="password" id="login-password" placeholder="请输入密码">
+        </div>
+        <button class="btn" onclick="handleLogin()">登录</button>
+        <button class="btn btn-secondary" onclick="showModule('register-module')">注册</button>
+    </div>
+
+    <!-- 2. 注册模块 -->
+    <div id="register-module" class="container hidden">
+        <h2 class="title">用户注册</h2>
+        <div class="form-group">
+            <label for="reg-username">用户名</label>
+            <input type="text" id="reg-username" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+            <label for="reg-password">密码</label>
+            <input type="password" id="reg-password" placeholder="请输入密码">
+        </div>
+        <div class="form-group">
+            <label for="reg-confirm-password">确认密码</label>
+            <input type="password" id="reg-confirm-password" placeholder="请再次输入密码">
+        </div>
+        <button class="btn" onclick="handleRegister()">注册</button>
+        <button class="btn btn-secondary" onclick="showModule('login-module')">返回登录</button>
+    </div>
+
+    <!-- 3. 主界面模块（所有投票） -->
+    <div id="main-module" class="container hidden">
+        <div class="top-bar">
+            <div class="welcome-text" id="welcome-text"></div>
+            <div>
+                <button class="btn" onclick="showModule('create-poll-module')">创建投票</button>
+                <button class="btn btn-secondary" onclick="showModule('my-polls-module')">我的投票</button>
+                <button class="btn btn-danger" onclick="handleLogout()">退出登录</button>
+            </div>
+        </div>
+        <h2 class="title">所有投票</h2>
+        <div id="all-polls-container"></div>
+    </div>
+
+    <!-- 4. 创建投票模块 -->
+    <div id="create-poll-module" class="container hidden">
+        <h2 class="title">创建投票</h2>
+        <button class="btn btn-secondary" onclick="showModule('main-module')">返回</button>
+        <div class="form-group" style="margin-top: 20px;">
+            <label for="poll-title">投票主题</label>
+            <input type="text" id="poll-title" placeholder="请输入投票主题">
+        </div>
+        <div class="form-group">
+            <label for="poll-desc">投票说明</label>
+            <textarea id="poll-desc" placeholder="请输入投票详细说明（可选）"></textarea>
+        </div>
+        <div class="form-group">
+            <label>投票选项（至少2个）</label>
+            <div id="options-container">
+                <input type="text" class="poll-option" placeholder="选项1" style="margin-bottom: 10px;">
+                <input type="text" class="poll-option" placeholder="选项2" style="margin-bottom: 10px;">
+            </div>
+            <button class="btn btn-secondary" onclick="addPollOption()" style="margin-top: 10px;">+ 添加选项</button>
+        </div>
+        <button class="btn" onclick="handleCreatePoll()" style="margin-top: 20px;">创建投票</button>
+    </div>
+
+    <!-- 5. 我的投票模块 -->
+    <div id="my-polls-module" class="container hidden">
+        <h2 class="title">我创建的投票</h2>
+        <button class="btn btn-secondary" onclick="showModule('main-module')">返回</button>
+        <div id="my-polls-container" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- 6. 投票详情模块 -->
+    <div id="poll-detail-module" class="container hidden">
+        <h2 class="title" id="detail-title"></h2>
+        <button class="btn btn-secondary" onclick="showModule('main-module')">返回</button>
+        <div id="detail-desc" class="poll-desc" style="margin-top: 20px;"></div>
+        <div id="detail-info" class="poll-info" style="margin-top: 10px;"></div>
+        <div id="detail-total-votes" style="margin-top: 10px; font-weight: bold;""></div>
+        <div id="detail-options-container" style="margin-top: 20px;"></div>
+        <button id="submit-vote-btn" class="btn" style="margin-top: 20px; display: none;" onclick="handleSubmitVote()">提交投票</button>
+    </div>
+
+    <!-- 引入Axios（CDN方式，无需本地安装，简化配置） -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // 全局配置
+        const API_BASE_URL = 'http://localhost:5000/api'; // 后端接口基础地址
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null; // 存储当前登录用户
+        let currentPollId = null; // 存储当前查看的投票ID
+
+        // -------------------------- 模块切换 --------------------------
+        function showModule(moduleId) {
+            // 隐藏所有模块
+            document.querySelectorAll('[id$="-module"]').forEach(module => {
+                module.classList.add('hidden');
+            });
+            // 显示目标模块
+            document.getElementById(moduleId).classList.remove('hidden');
+
+            // 模块初始化
+            if (moduleId === 'main-module') {
+                initMainModule();
+            } else if (moduleId === 'my-polls-module') {
+                initMyPollsModule();
+            }
+        }
+
+        // -------------------------- 登录相关 --------------------------
+        function handleLogin() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+
+            // Axios请求登录接口
+            axios.post(`${API_BASE_URL}/login`, {
+                username,
+                password
+            }).then(response => {
+                const res = response.data;
+                if (res.success) {
+                    alert(res.message);
+                    // 存储当前用户信息
+                    currentUser = res.data;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    // 跳转到主界面
+                    showModule('main-module');
+                } else {
+                    alert(res.message);
+                }
+            }).catch(error => {
+                alert('登录请求失败：' + (error.response?.data?.message || error.message));
+            });
+        }
+
+        function handleRegister() {
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value.trim();
+            const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
+
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+
+            // Axios请求注册接口
+            axios.post(`${API_BASE_URL}/register`, {
+                username,
+                password
+            }).then(response => {
+                const res = response.data;
+                alert(res.message);
+                if (res.success) {
+                    // 注册成功返回登录界面
+                    showModule('login-module');
+                }
+            }).catch(error => {
+                alert('注册请求失败：' + (error.response?.data?.message || error.message));
+            });
+        }
+
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                // 清除本地存储
+                localStorage.removeItem('currentUser');
+                currentUser = null;
+                // 返回登录界面
+                showModule('login-module');
+            }
+        }
+
+        // -------------------------- 主界面模块初始化 --------------------------
+        function initMainModule() {
+            // 验证用户是否登录
+            if (!currentUser) {
+                showModule('login-module');
+                alert('请先登录');
+                return;
+            }
+
+            // 更新欢迎语
+            document.getElementById('welcome-text').innerText = `欢迎，${currentUser.username}`;
+
+            // 获取所有投票
+            axios.get(`${API_BASE_URL}/polls`).then(response => {
+                const res = response.data;
+                if (res.success) {
+                    const pollsContainer = document.getElementById('all-polls-container');
+                    pollsContainer.innerHTML = '';
+
+                    if (res.data.length === 0) {
+                        pollsContainer.innerHTML = '<div style="text-align: center; padding: 20px;">暂无投票</div>';
+                        return;
+                    }
+
+                    // 渲染投票列表
+                    res.data.forEach(poll => {
+                        const pollItem = document.createElement('div');
+                        pollItem.className = 'poll-item';
+                        pollItem.innerHTML = `
+                            <div class="poll-title">${poll.title}</div>
+                            <div class="poll-desc">${poll.description || '无说明'}</div>
+                            <div class="poll-info">创建者：${poll.creator_name} | 创建时间：${poll.created_at}</div>
+                            <button class="btn" onclick="showPollDetail(${poll.id})">查看详情</button>
+                        `;
+                        pollsContainer.appendChild(pollItem);
+                    });
+                } else {
+                    alert(res.message);
+                }
+            }).catch(error => {
+                alert('获取投票列表失败：' + (error.response?.data?.message || error.message));
+            });
+        }
+
+        // -------------------------- 我的投票模块初始化 --------------------------
+        function initMyPollsModule() {
+            if (!currentUser) {
+                showModule('login-module');
+                alert('请先登录');
+                return;
+            }
+
+            // 获取当前用户创建的投票
+            axios.get(`${API_BASE_URL}/user/polls?user_id=${currentUser.id}`).then(response => {
+                const res = response.data;
+                if (res.success) {
+                    const myPollsContainer = document.getElementById('my-polls-container');
+                    myPollsContainer.innerHTML = '';
+
+                    if (res.data.length === 0) {
+                        myPollsContainer.innerHTML = '<div style="text-align: center; padding: 20px;">您还没有创建过投票</div>';
+                        return;
+                    }
+
+                    // 渲染我的投票列表
+                    res.data.forEach(poll => {
+                        const pollItem = document.createElement('div');
+                        pollItem.className = 'poll-item';
+                        pollItem.innerHTML = `
+                            <div class="poll-title">${poll.title}</div>
+                            <div class="poll-desc">${poll.description || '无说明'}</div>
+                            <div class="poll-info">创建时间：${poll.created_at}</div>
+                            <button class="btn" onclick="showPollDetail(${poll.id})">查看详情</button>
+                        `;
+                        myPollsContainer.appendChild(pollItem);
+                    });
+                } else {
+                    alert(res.message);
+                }
+            }).catch(error => {
+                alert('获取我的投票失败：' + (error.response?.data?.message || error.message));
+            });
+        }
+
+        // -------------------------- 创建投票 --------------------------
+        function addPollOption() {
+            const optionsContainer = document.getElementById('options-container');
+            const optionCount = optionsContainer.querySelectorAll('.poll-option').length;
+
+            if (optionCount >= 10) {
+                alert('最多只能添加10个选项');
+                return;
+            }
+
+            const newOption = document.createElement('input');
+            newOption.type = 'text';
+            newOption.className = 'poll-option';
+            newOption.placeholder = `选项${optionCount + 1}`;
+            newOption.style.marginBottom = '10px';
+            optionsContainer.appendChild(newOption);
+        }
+
+        function handleCreatePoll() {
+            if (!currentUser) {
+                showModule('login-module');
+                alert('请先登录');
+                return;
+            }
+
+            const title = document.getElementById('poll-title').value.trim();
+            const description = document.getElementById('poll-desc').value.trim();
+            const optionInputs = document.querySelectorAll('.poll-option');
+            const options = [];
+
+            // 收集有效选项
+            optionInputs.forEach(input => {
+                const value = input.value.trim();
+                if (value) {
+                    options.push(value);
+                }
+            });
+
+            // 调用创建投票接口
+            axios.post(`${API_BASE_URL}/polls`, {
+                title,
+                description,
+                creator_id: currentUser.id,
+                options
+            }).then(response => {
+                const res = response.data;
+                alert(res.message);
+                if (res.success) {
+                    // 创建成功返回主界面
+                    showModule('main-module');
+                }
+            }).catch(error => {
+                alert('创建投票失败：' + (error.response?.data?.message || error.message));
+            });
+        }
+
+        // -------------------------- 投票详情 --------------------------
+        function showPollDetail(pollId) {
+            currentPollId = pollId;
+
+            // 获取投票详情
+            axios.get(`${API_BASE_URL}/polls/${pollId}`).then(response => {
+                const res = response.data;
+                if (res.success) {
+                    const poll = res.data;
+                    // 填充详情数据
+                    document.getElementById('detail-title').innerText = poll.title;
+                    document.getElementById('detail-desc').innerText = poll.description || '无说明';
+                    document.getElementById('detail-info').innerText = `创建者：${poll.creator_name} | 创建时间：${poll.created_at}`;
+                    document.getElementById('detail-total-votes').innerText = `总投票数：${poll.total_votes}`;
+
+                    const optionsContainer = document.getElementById('detail-options-container');
+                    optionsContainer.innerHTML = '';
+
+                    // 判断是否可以投票（不是创建者 + 未投票）
+                    const canVote = currentUser.id !== poll.creator_id && !poll.options.some(option => option.vote_count && option.voted);
+                    document.getElementById('submit-vote-btn').style.display = canVote ? 'block' : 'none';
+
+                    // 渲染选项
+                    poll.options.forEach(option => {
+                        const optionItem = document.createElement('div');
+                        optionItem.className = 'option-item';
+                        optionItem.dataset.optionId = option.id;
+
+                        if (canVote) {
+                            // 可投票：显示单选按钮
+                            optionItem.innerHTML = `
+                                <div class="radio-group">
+                                    <input type="radio" name="poll-option" value="${option.id}" id="option-${option.id}">
+                                    <label for="option-${option.id}">${option.option_text}</label>
+                                </div>
+                            `;
+                        } else {
+                            // 不可投票：显示结果 + 进度条
+                            const percentage = poll.total_votes > 0 ? (option.vote_count / poll.total_votes) * 100 : 0;
+                            optionItem.innerHTML = `
+                                <div>${option.option_text}</div>
+                                <div style="margin-top: 10px; font-size: 14px;">票数：${option.vote_count} (${percentage.toFixed(1)}%)</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${percentage}%;"></div>
+                                </div>
+                            `;
+                        }
+
+                        optionsContainer.appendChild(optionItem);
+                    });
+
+                    // 显示详情模块
+                    showModule('poll-detail-module');
+                } else {
+                    alert(res.message);
+                }
+            }).catch(error => {
+                alert('获取投票详情失败：' + (error.response?.data?.message || error.message));
+            });
+        }
+
+        function handleSubmitVote() {
+            if (!currentPollId) {
+                alert('无效的投票ID');
+                return;
+            }
+
+            // 获取选中的选项
+            const selectedOption = document.querySelector('input[name="poll-option"]:checked');
+            if (!selectedOption) {
+                alert('请选择一个选项');
+                return;
+            }
+
+            const optionId = parseInt(selectedOption.value);
+
+            // 提交投票接口
+            axios.post(`${API_BASE_URL}/polls/${currentPollId}/vote`, {
+                user_id: currentUser.id,
+                option_id: optionId
+            }).then(response => {
+                const res = response.data;
+                alert(res.message);
+                if (res.success) {
+                    // 刷新投票详情
+                    showPollDetail(currentPollId);
+                }
+            }).catch(error => {
+                alert('提交投票失败：' + (error.response?.data?.message || error.message));
+            });
+        }
+
+        // -------------------------- 页面初始化 --------------------------
+        window.onload = function() {
+            // 如果已登录，直接进入主界面
+            if (currentUser) {
+                showModule('main-module');
+            } else {
+                showModule('login-module');
+            }
+        };
+    </script>
+</body>
+</html>
