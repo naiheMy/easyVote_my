@@ -25,5 +25,3 @@ python .\app.py
 ## 四、其他
 
 ​	本项目依赖与云服务器存储数据，如遇数据库操作相关问题可以联系作者。
-
-​	本项目由毛宇学生本人完成，已经在github开源，开源地址为：[naiheMy/easyVote_my](https://github.com/naiheMy/easyVote_my)
